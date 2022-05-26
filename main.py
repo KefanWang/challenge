@@ -96,8 +96,8 @@ def train_and_validate(args, resume=False):
                     'model_state_dict': model.module.state_dict() if args.device == 'cuda' else model.state_dict(), 
                     'mean_f1': mean_f1,
                     'step':step,
-                    'optimizer_state_dict': optimizer.module.state_dict() if args.device == 'cuda' else optimizer.state_dict(), 
-                    'scheduler_state_dict': scheduler.module.state_dict() if args.device == 'cuda' else scheduler.state_dict()
+                    'optimizer_state_dict': optimizer.state_dict(), 
+                    'scheduler_state_dict': scheduler.state_dict()
                 },
                     f'{args.savedmodel_path}/model_epoch_{epoch}_mean_f1_{mean_f1}.bin'
                     )
