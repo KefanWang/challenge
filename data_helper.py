@@ -14,6 +14,7 @@ from category_id_map import category_id_to_lv2id
 
 def create_dataloaders(args):
     dataset = MultiModalDataset(args, args.train_annotation, args.train_zip_feats)
+
     size = len(dataset)
     val_size = int(size * args.val_ratio)
     train_dataset, val_dataset = torch.utils.data.random_split(dataset, [size - val_size, val_size],
@@ -122,16 +123,39 @@ class MultiModalDataset(Dataset):
     def __getitem__(self, idx: int) -> dict:
         # Step 1, load visual features from zipfile.
         frame_input, frame_mask = self.get_visual_feats(idx)
-
+        
         # Step 2, load title tokens
-        title_input, title_mask = self.tokenize_text(self.anns[idx]['title'])
+        # title_input, title_mask = self.tokenize_text(self.anns[idx]['title'])
+        
+        # asr_input, asr_mask = self.tokenize_text(self.anns[idx]['asr'])
 
+        # ocr_concat = []
+        # for i in self.anns[idx]["ocr"]:
+        #     ocr_concat.extend(i["text"])
+        # ocr_concat = ''.join(ocr_concat)
+        # ocr_input, ocr_mask = self.tokenize_text(ocr_concat)
+        res = self.anns[idx]['title']
+        res.extend(self.anns[idx]['asr'])
+        for i in self.anns[idx]["ocr"]:
+            res.extend(i["text"])
+        title_input, title_mask = self.tokenize_text(res)
+        
+        # print(f'ocr_input={ocr_input}, ocr_mask={ocr_mask}')
+        # print(f'Origin ocr = {self.anns[idx]["ocr"]}\n Concat ocr = {ocr_concat}')
+        # print(ocr_concat)
+        # print(len(self.anns[idx]['ocr']))
+        # print(f'Length of asr = {len(self.anns[idx]["asr"])}, Num of Ocrs = {len(self.anns[idx]["ocr"])}, Length of each Ocr = {[len(i["text"]) for i in self.anns[idx]["ocr"]]}')
+        # print(f'data={self.anns[idx]}\nasr_input = {asr_input}\n asr_mask = {asr_mask}')
         # Step 3, summarize into a dictionary
         data = dict(
             frame_input=frame_input,
             frame_mask=frame_mask,
             title_input=title_input,
-            title_mask=title_mask
+            title_mask=title_mask,
+            # asr_input=asr_input,
+            # asr_mask=asr_mask,
+            # ocr_input=ocr_input,
+            # ocr_mask=ocr_mask
         )
 
         # Step 4, load label if not test mode

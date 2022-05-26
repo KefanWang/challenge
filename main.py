@@ -28,33 +28,52 @@ def validate(model, val_dataloader):
     return loss, results
 
 
-def train_and_validate(args):
+def train_and_validate(args, resume=False):
+
     # 1. load data
     train_dataloader, val_dataloader = create_dataloaders(args)
 
     # 2. build model and optimizers
     model = MultiModal(args)
-    optimizer, scheduler = build_optimizer(args, model)
+    if resume:
+        checkpoint = torch.load(args.ckpt_file, map_location=torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu'))
+        model.load_state_dict(checkpoint['model_state_dict'])
+        optimizer, scheduler = build_optimizer(args, model)
+        scheduler.last_epoch = checkpoint['epoch']
+        best_score = checkpoint['mean_f1']
+    else:
+        optimizer, scheduler = build_optimizer(args, model)
+        best_score = args.best_score
+
     if args.device == 'cuda':
         model = torch.nn.parallel.DataParallel(model.to(args.device))
 
     # 3. training
     step = 0
-    best_score = args.best_score
     start_time = time.time()
     num_total_steps = len(train_dataloader) * args.max_epochs
-    for epoch in range(args.max_epochs):
+
+    if resume: 
+        init = checkpoint['epoch'] + 1
+        del checkpoint
+    else:
+        init = 0
+
+    for epoch in range(init, args.max_epochs):
         for batch in train_dataloader:
             model.train()
             loss, accuracy, _, _ = model(batch)
             loss = loss.mean()
             accuracy = accuracy.mean()
             loss.backward()
-            optimizer.step()
-            optimizer.zero_grad()
-            scheduler.step()
 
             step += 1
+
+            if step % args.gradient_acc_step == 0:
+                optimizer.step()
+                optimizer.zero_grad()
+                scheduler.step()
+
             if step % args.print_steps == 0:
                 time_per_step = (time.time() - start_time) / max(1, step)
                 remaining_time = time_per_step * (num_total_steps - step)
@@ -84,7 +103,7 @@ def main():
     os.makedirs(args.savedmodel_path, exist_ok=True)
     logging.info("Training/evaluation parameters: %s", args)
 
-    train_and_validate(args)
+    train_and_validate(args, True)
 
 
 if __name__ == '__main__':

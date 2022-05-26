@@ -15,17 +15,38 @@ class MultiModal(nn.Module):
         self.enhance = SENet(channels=args.vlad_hidden_size, ratio=args.se_ratio)
         bert_output_size = 768
         self.fusion = ConcatDenseSE(args.vlad_hidden_size + bert_output_size, args.fc_size, args.se_ratio, args.dropout)
+        # self.fusion = ConcatDenseSE(args.vlad_hidden_size + 3 * bert_output_size, args.fc_size, args.se_ratio, args.dropout)
+        # self.asr_fcn = nn.Linear(bert_output_size, args.fc_size)
+        # self.ocr_fcn = nn.Linear(bert_output_size, args.fc_size)
         self.classifier = nn.Linear(args.fc_size, len(CATEGORY_ID_LIST))
 
     def forward(self, inputs, inference=False):
+        
+        verbose = False
+
         bert_embedding = self.bert(inputs['title_input'], inputs['title_mask'])['pooler_output']
+        if verbose: print(f'bert_embedding + {bert_embedding.shape}')
+        
+        asr_embedding = self.bert(inputs['asr_input'], inputs['asr_mask'])['pooler_output']
+        if verbose: print(f'asr_embedding + {asr_embedding.shape}')
+
+        ocr_embedding = self.bert(inputs['ocr_input'], inputs['ocr_mask'])['pooler_output']
+        if verbose: print(f'ocr_embedding + {ocr_embedding.shape}')
 
         vision_embedding = self.nextvlad(inputs['frame_input'], inputs['frame_mask'])
+        if verbose: print(f'vision_embedding + {vision_embedding.shape}')
+        
         vision_embedding = self.enhance(vision_embedding)
-
+        if verbose: print(f'vision_embedding + {vision_embedding.shape}')
+        
         final_embedding = self.fusion([vision_embedding, bert_embedding])
+        # final_embedding = self.fusion([vision_embedding, bert_embedding]) + self.asr_fcn(asr_embedding) + self.ocr_fcn(ocr_embedding)
+        # final_embedding = self.fusion([vision_embedding, bert_embedding, asr_embedding, ocr_embedding])
+        if verbose: print(f'final_embedding + {final_embedding.shape}')
+        
         prediction = self.classifier(final_embedding)
-
+        if verbose: print(f'prediction + {prediction.shape}')
+        
         if inference:
             return torch.argmax(prediction, dim=1)
         else:
