@@ -39,25 +39,25 @@ def train_and_validate(args, resume=False):
         checkpoint = torch.load(args.ckpt_file, map_location=torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu'))
         model.load_state_dict(checkpoint['model_state_dict'])
         optimizer, scheduler = build_optimizer(args, model)
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
         scheduler.last_epoch = checkpoint['epoch']
         best_score = checkpoint['mean_f1']
+        init = checkpoint['epoch'] + 1
+        step = checkpoint['step']
+        del checkpoint
     else:
         optimizer, scheduler = build_optimizer(args, model)
         best_score = args.best_score
+        init = 0
+        step = 0
 
     if args.device == 'cuda':
         model = torch.nn.parallel.DataParallel(model.to(args.device))
 
     # 3. training
-    step = 0
     start_time = time.time()
     num_total_steps = len(train_dataloader) * args.max_epochs
-
-    if resume: 
-        init = checkpoint['epoch'] + 1
-        del checkpoint
-    else:
-        init = 0
 
     for epoch in range(init, args.max_epochs):
         for batch in train_dataloader:
@@ -89,9 +89,18 @@ def train_and_validate(args, resume=False):
         mean_f1 = results['mean_f1']
         if mean_f1 > best_score:
             best_score = mean_f1
-            state_dict = model.module.state_dict() if args.device == 'cuda' else model.state_dict()
-            torch.save({'epoch': epoch, 'model_state_dict': state_dict, 'mean_f1': mean_f1},
-                       f'{args.savedmodel_path}/model_epoch_{epoch}_mean_f1_{mean_f1}.bin')
+            # state_dict = model.module.state_dict() if args.device == 'cuda' else model.state_dict()
+            torch.save(
+                {
+                    'epoch': epoch, 
+                    'model_state_dict': model.module.state_dict() if args.device == 'cuda' else model.state_dict(), 
+                    'mean_f1': mean_f1,
+                    'step':step,
+                    'optimizer_state_dict': optimizer.module.state_dict() if args.device == 'cuda' else optimizer.state_dict(), 
+                    'scheduler_state_dict': scheduler.module.state_dict() if args.device == 'cuda' else scheduler.state_dict()
+                },
+                    f'{args.savedmodel_path}/model_epoch_{epoch}_mean_f1_{mean_f1}.bin'
+                    )
 
 
 def main():
@@ -103,6 +112,7 @@ def main():
     os.makedirs(args.savedmodel_path, exist_ok=True)
     logging.info("Training/evaluation parameters: %s", args)
 
+    # train_and_validate(args, False)
     train_and_validate(args, True)
 
 
