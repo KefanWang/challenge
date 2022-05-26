@@ -116,7 +116,7 @@ class MultiModalDataset(Dataset):
 
     def tokenize_text(self, text: str) -> tuple:
         encoded_inputs = self.tokenizer(text, max_length=self.bert_seq_length, padding='max_length', truncation=True)
-        print(encoded_inputs)
+        # print(encoded_inputs)
         input_ids = torch.LongTensor(encoded_inputs['input_ids'])
         mask = torch.LongTensor(encoded_inputs['attention_mask'])
         return input_ids, mask
@@ -135,14 +135,16 @@ class MultiModalDataset(Dataset):
         #     ocr_concat.extend(i["text"])
         # ocr_concat = ''.join(ocr_concat)
         # ocr_input, ocr_mask = self.tokenize_text(ocr_concat)
+
         res = [self.anns[idx]['title']]
         # res.extend(['[SEP]'])
         res.append(self.anns[idx]['asr'])
-        print(res)
+        # print(res)
         self.tokenize_text(res)
         for i in self.anns[idx]["ocr"]:
             res.extend(['[SEP]'])
             res.extend(i["text"])
+        
         # print(''.join(res))
         title_input, title_mask = self.tokenize_text(''.join(res))
         # print(title_input)
