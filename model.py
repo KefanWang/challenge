@@ -27,11 +27,11 @@ class MultiModal(nn.Module):
         bert_embedding = self.bert(inputs['title_input'], inputs['title_mask'])['pooler_output']
         if verbose: print(f'bert_embedding + {bert_embedding.shape}')
         
-        asr_embedding = self.bert(inputs['asr_input'], inputs['asr_mask'])['pooler_output']
-        if verbose: print(f'asr_embedding + {asr_embedding.shape}')
+        # asr_embedding = self.bert(inputs['asr_input'], inputs['asr_mask'])['pooler_output']
+        # if verbose: print(f'asr_embedding + {asr_embedding.shape}')
 
-        ocr_embedding = self.bert(inputs['ocr_input'], inputs['ocr_mask'])['pooler_output']
-        if verbose: print(f'ocr_embedding + {ocr_embedding.shape}')
+        # ocr_embedding = self.bert(inputs['ocr_input'], inputs['ocr_mask'])['pooler_output']
+        # if verbose: print(f'ocr_embedding + {ocr_embedding.shape}')
 
         vision_embedding = self.nextvlad(inputs['frame_input'], inputs['frame_mask'])
         if verbose: print(f'vision_embedding + {vision_embedding.shape}')
