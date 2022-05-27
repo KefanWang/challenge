@@ -69,16 +69,16 @@ def train_and_validate(args, resume=False):
 
             step += 1
 
-            if step % args.gradient_acc_step == 0:
-                optimizer.step()
-                optimizer.zero_grad()
-                scheduler.step()
+            # if step % args.gradient_acc_step == 0:
+            optimizer.step()
+            optimizer.zero_grad()
+            scheduler.step()
 
-            if step % args.print_steps == 0:
-                time_per_step = (time.time() - start_time) / max(1, step)
-                remaining_time = time_per_step * (num_total_steps - step)
-                remaining_time = time.strftime('%H:%M:%S', time.gmtime(remaining_time))
-                logging.info(f"Epoch {epoch} step {step} eta {remaining_time}: loss {loss:.3f}, accuracy {accuracy:.3f}")
+            # if step % args.print_steps == 0:
+            time_per_step = (time.time() - start_time) / max(1, step)
+            remaining_time = time_per_step * (num_total_steps - step)
+            remaining_time = time.strftime('%H:%M:%S', time.gmtime(remaining_time))
+            logging.info(f"Epoch {epoch} step {step} eta {remaining_time}: loss {loss:.3f}, accuracy {accuracy:.3f}")
 
         # 4. validation
         loss, results = validate(model, val_dataloader)
