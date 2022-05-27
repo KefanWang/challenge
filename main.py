@@ -52,7 +52,7 @@ def train_and_validate(args, resume=False):
         init = 0
         step = 0
 
-    if args.device == 'cuda':
+    if args.device == 'cuda' and not resume:
         model = torch.nn.parallel.DataParallel(model.to(args.device))
 
     # 3. training
