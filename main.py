@@ -38,6 +38,8 @@ def train_and_validate(args, resume=False):
     if resume:
         checkpoint = torch.load(args.ckpt_file, map_location=torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu'))
         model.load_state_dict(checkpoint['model_state_dict'])
+        if args.device == 'cuda' and not resume:
+            model = torch.nn.parallel.DataParallel(model.to(args.device))
         optimizer, scheduler = build_optimizer(args, model)
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
@@ -47,13 +49,12 @@ def train_and_validate(args, resume=False):
         step = checkpoint['step']
         del checkpoint
     else:
+        if args.device == 'cuda' and not resume:
+            model = torch.nn.parallel.DataParallel(model.to(args.device))
         optimizer, scheduler = build_optimizer(args, model)
         best_score = args.best_score
         init = 0
         step = 0
-
-    if args.device == 'cuda' and not resume:
-        model = torch.nn.parallel.DataParallel(model.to(args.device))
 
     # 3. training
     start_time = time.time()
